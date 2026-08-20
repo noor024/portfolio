@@ -29,15 +29,23 @@ const getSettings = async () => {
   return settings;
 };
 
+const withDefaults = (values, fallback) =>
+  Object.fromEntries(
+    Object.entries(fallback).map(([key, defaultValue]) => [
+      key,
+      values?.[key] || defaultValue,
+    ])
+  );
+
 router.get("/", async (req, res) => {
   try {
     const settings = await getSettings();
     res.json({
       success: true,
       settings: {
-        personal: { ...defaults.personal, ...settings.personal },
-        social: { ...defaults.social, ...settings.social },
-        skills: Array.isArray(settings.skills) ? settings.skills : defaults.skills,
+        personal: withDefaults(settings.personal, defaults.personal),
+        social: withDefaults(settings.social, defaults.social),
+        skills: settings.skills?.length ? settings.skills : defaults.skills,
       },
     });
   } catch (error) {
