@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { ADMIN_API_URL, PROJECTS_API_URL } from "../config/api";
 import "./AdminDashboard.css";
 
-const API_URL = "http://localhost:5000/api/projects";
-const ADMIN_API_URL = "http://localhost:5000/api/admin";
+const API_URL = PROJECTS_API_URL;
 
 const STRONG_PASSWORD_REGEX =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;

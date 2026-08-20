@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { ADMIN_API_URL } from "../config/api";
 
 function AdminLogin({ onLogin }) {
   const [email, setEmail] = useState("");
@@ -22,7 +23,7 @@ function AdminLogin({ onLogin }) {
       setLoading(true);
 
       const response = await fetch(
-        "http://localhost:5000/api/admin/login",
+        `${ADMIN_API_URL}/login`,
         {
           method: "POST",
           headers: {

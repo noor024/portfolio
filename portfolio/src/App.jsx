@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { portfolioData } from "./data/portfolioData";
-import AdminLogin from "./admin/AdminLogin";
-import AdminDashboard from "./admin/AdminDashboard";
+import AdminLogin from "./Admin/AdminLogin";
+import AdminDashboard from "./Admin/AdminDashboard";
+import { PROJECTS_API_URL } from "./config/api";
 import "./App.css";
 
-const API_URL = "http://localhost:5000/api/projects";
+const API_URL = PROJECTS_API_URL;
 
 function Arrow() {
   return <span className="arrow-icon">↗</span>;

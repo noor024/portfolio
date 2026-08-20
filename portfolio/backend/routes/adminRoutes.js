@@ -2,13 +2,16 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-const Admin = require("../models/admin");
+const Admin = require("../models/Admin");
 
 const router = express.Router();
 
+if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET is required in production");
+}
+
 const JWT_SECRET =
-  process.env.JWT_SECRET ||
-  "portfolio_admin_secret_change_this";
+  process.env.JWT_SECRET || "portfolio_admin_secret_change_this";
 
 // ======================================================
 // ADMIN AUTH MIDDLEWARE

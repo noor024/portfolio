@@ -2,7 +2,7 @@ require("dotenv").config();
 
 const bcrypt = require("bcryptjs");
 const sequelize = require("./config/database");
-const Admin = require("./models/admin");
+const Admin = require("./models/Admin");
 
 async function createAdmin() {
   try {
