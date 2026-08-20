@@ -1744,3 +1744,12 @@
     padding: 15px;
   }
 }
+
+.full-width {
+  grid-column: 1 / -1;
+}
+
+.premium-field textarea {
+  width: 100%;
+  resize: vertical;
+}

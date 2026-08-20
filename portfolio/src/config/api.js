@@ -3,3 +3,4 @@ const API_BASE_URL =
 
 export const PROJECTS_API_URL = `${API_BASE_URL}/projects`;
 export const ADMIN_API_URL = `${API_BASE_URL}/admin`;
+export const SETTINGS_API_URL = `${API_BASE_URL}/settings`;

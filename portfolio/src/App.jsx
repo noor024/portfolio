@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { portfolioData } from "./data/portfolioData";
 import AdminLogin from "./Admin/AdminLogin";
 import AdminDashboard from "./Admin/AdminDashboard";
-import { PROJECTS_API_URL } from "./config/api";
+import { PROJECTS_API_URL, SETTINGS_API_URL } from "./config/api";
 import "./App.css";
 
 const API_URL = PROJECTS_API_URL;
@@ -21,10 +21,11 @@ function App() {
 
   const [projects, setProjects] = useState([]);
   const [projectsLoading, setProjectsLoading] = useState(true);
+  const [siteSettings, setSiteSettings] = useState(portfolioData);
 
   const closeMenu = () => setMenuOpen(false);
 
-  const { personal, social, skills } = portfolioData;
+  const { personal, social, skills } = siteSettings;
 
   /* ==========================================
      CHECK ADMIN LOGIN
@@ -70,6 +71,30 @@ function App() {
 
   useEffect(() => {
     loadProjects();
+  }, []);
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const response = await fetch(SETTINGS_API_URL);
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.message || "Unable to load settings");
+        }
+
+        setSiteSettings((previous) => ({
+          ...previous,
+          ...data.settings,
+          personal: { ...previous.personal, ...data.settings.personal },
+          social: { ...previous.social, ...data.settings.social },
+        }));
+      } catch (error) {
+        console.error("Settings loading error:", error);
+      }
+    };
+
+    loadSettings();
   }, []);
 
   /* ==========================================

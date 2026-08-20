@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ADMIN_API_URL, PROJECTS_API_URL } from "../config/api";
+import {
+  ADMIN_API_URL,
+  PROJECTS_API_URL,
+  SETTINGS_API_URL,
+} from "../config/api";
 import "./AdminDashboard.css";
 
 const API_URL = PROJECTS_API_URL;
@@ -50,6 +54,21 @@ function AdminDashboard({ admin, onLogout, onAdminUpdate }) {
   const [accountMessage, setAccountMessage] = useState("");
   const [accountError, setAccountError] = useState("");
 
+  const [settingsForm, setSettingsForm] = useState({
+    personal: {
+      name: "",
+      role: "",
+      tagline: "",
+      bio: "",
+      email: "",
+    },
+    social: { github: "", linkedin: "", instagram: "" },
+    skills: "",
+  });
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [settingsMessage, setSettingsMessage] = useState("");
+  const [settingsError, setSettingsError] = useState("");
+
   const loadProjects = async () => {
     try {
       setLoading(true);
@@ -72,6 +91,29 @@ function AdminDashboard({ admin, onLogout, onAdminUpdate }) {
 
   useEffect(() => {
     loadProjects();
+  }, []);
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const response = await fetch(SETTINGS_API_URL);
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.message || "Unable to load settings");
+        }
+
+        setSettingsForm({
+          personal: data.settings.personal,
+          social: data.settings.social,
+          skills: data.settings.skills.join(", "),
+        });
+      } catch (err) {
+        setSettingsError(err.message || "Unable to load settings");
+      }
+    };
+
+    loadSettings();
   }, []);
 
   useEffect(() => {
@@ -134,6 +176,67 @@ function AdminDashboard({ admin, onLogout, onAdminUpdate }) {
       ...previous,
       [name]: value,
     }));
+  };
+
+  const handleSettingsChange = (e) => {
+    const { name, value } = e.target;
+
+    if (name.startsWith("personal.")) {
+      const field = name.split(".")[1];
+      setSettingsForm((previous) => ({
+        ...previous,
+        personal: { ...previous.personal, [field]: value },
+      }));
+      return;
+    }
+
+    if (name.startsWith("social.")) {
+      const field = name.split(".")[1];
+      setSettingsForm((previous) => ({
+        ...previous,
+        social: { ...previous.social, [field]: value },
+      }));
+      return;
+    }
+
+    setSettingsForm((previous) => ({ ...previous, [name]: value }));
+  };
+
+  const handleSettingsSubmit = async (e) => {
+    e.preventDefault();
+    setSettingsMessage("");
+    setSettingsError("");
+
+    try {
+      setSettingsSaving(true);
+      const token = localStorage.getItem("adminToken");
+      const response = await fetch(SETTINGS_API_URL, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          personal: settingsForm.personal,
+          social: settingsForm.social,
+          skills: settingsForm.skills
+            .split(",")
+            .map((skill) => skill.trim())
+            .filter(Boolean),
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Unable to save settings");
+      }
+
+      setSettingsMessage("Portfolio settings saved successfully.");
+    } catch (err) {
+      setSettingsError(err.message || "Unable to save settings");
+    } finally {
+      setSettingsSaving(false);
+    }
   };
 
   const openAddForm = () => {
@@ -604,6 +707,83 @@ function AdminDashboard({ admin, onLogout, onAdminUpdate }) {
             </div>
             <small>Backend connected</small>
           </motion.div>
+        </section>
+
+        {/* PORTFOLIO SETTINGS */}
+        <section className="premium-section">
+          <div className="premium-section-heading">
+            <div>
+              <span className="section-kicker">SITE CONTENT</span>
+              <h2>Portfolio Settings</h2>
+              <p>Update your public profile without editing code.</p>
+            </div>
+          </div>
+
+          {settingsMessage && (
+            <div className="premium-success">✓ {settingsMessage}</div>
+          )}
+          {settingsError && (
+            <div className="premium-error">{settingsError}</div>
+          )}
+
+          <form className="premium-account-card" onSubmit={handleSettingsSubmit}>
+            <div className="account-form-grid">
+              {[
+                ["personal.name", "Display Name", "Your name"],
+                ["personal.role", "Role", "Full Stack Developer"],
+                ["personal.tagline", "Tagline", "Your short introduction"],
+                ["personal.email", "Public Email", "you@example.com"],
+                ["social.github", "GitHub URL", "https://github.com/you"],
+                ["social.linkedin", "LinkedIn URL", "https://linkedin.com/in/you"],
+                ["social.instagram", "Instagram URL", "https://instagram.com/you"],
+              ].map(([name, label, placeholder]) => {
+                const [group, field] = name.split(".");
+                return (
+                  <div className="premium-field" key={name}>
+                    <label htmlFor={`settings-${field}`}>{label}</label>
+                    <input
+                      id={`settings-${field}`}
+                      name={name}
+                      value={settingsForm[group][field]}
+                      onChange={handleSettingsChange}
+                      placeholder={placeholder}
+                    />
+                  </div>
+                );
+              })}
+
+              <div className="premium-field full-width">
+                <label htmlFor="settings-bio">About Bio</label>
+                <textarea
+                  id="settings-bio"
+                  name="personal.bio"
+                  value={settingsForm.personal.bio}
+                  onChange={handleSettingsChange}
+                  placeholder="Tell visitors about yourself"
+                  rows={4}
+                />
+              </div>
+
+              <div className="premium-field full-width">
+                <label htmlFor="settings-skills">Skills</label>
+                <input
+                  id="settings-skills"
+                  name="skills"
+                  value={settingsForm.skills}
+                  onChange={handleSettingsChange}
+                  placeholder="React, Node.js, PostgreSQL"
+                />
+                <small className="password-hint">Separate skills with commas.</small>
+              </div>
+            </div>
+
+            <div className="account-footer">
+              <span className="password-hint">Changes publish to your public portfolio.</span>
+              <button type="submit" className="premium-primary-button" disabled={settingsSaving}>
+                {settingsSaving ? "Saving..." : "Save Portfolio"}
+              </button>
+            </div>
+          </form>
         </section>
 
         {/* ACCOUNT SETTINGS */}
