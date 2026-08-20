@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { ADMIN_API_URL } from "../config/api";
+import "./AdminLogin.css";
 
 function AdminLogin({ onLogin }) {
   const [email, setEmail] = useState("");
