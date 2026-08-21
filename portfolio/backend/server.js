@@ -69,7 +69,7 @@ app.get("/api/health", async (req, res) => {
       message: "Portfolio backend is running 🚀",
       database: "PostgreSQL Connected ✅",
     });
-  } catch (error) {
+  } catch {
     res.status(503).json({
       success: false,
       message: "Database unavailable",
@@ -93,7 +93,7 @@ app.use("/api", (req, res) => {
 // ERROR HANDLER
 // ===============================
 
-app.use((error, req, res, next) => {
+app.use((error, req, res, _next) => {
   console.error("Server Error:", error.message);
 
   res.status(500).json({

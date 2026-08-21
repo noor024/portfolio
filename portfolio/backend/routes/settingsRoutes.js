@@ -48,7 +48,7 @@ router.get("/", async (req, res) => {
         skills: settings.skills?.length ? settings.skills : defaults.skills,
       },
     });
-  } catch (error) {
+  } catch {
     res.status(500).json({ success: false, message: "Unable to load portfolio settings" });
   }
 });
@@ -77,7 +77,7 @@ router.put("/", protectAdmin, async (req, res) => {
 
     await settings.save();
     res.json({ success: true, message: "Portfolio settings saved", settings });
-  } catch (error) {
+  } catch {
     res.status(400).json({ success: false, message: "Unable to save portfolio settings" });
   }
 });

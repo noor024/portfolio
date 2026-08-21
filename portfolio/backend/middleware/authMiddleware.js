@@ -32,7 +32,7 @@ const protectAdmin = (req, res, next) => {
     req.admin = decoded;
 
     next();
-  } catch (error) {
+  } catch {
     return res.status(401).json({
       success: false,
       message: "Invalid or expired authentication token",
