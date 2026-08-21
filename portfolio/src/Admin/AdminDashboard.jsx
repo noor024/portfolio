@@ -347,7 +347,9 @@ function AdminDashboard({ admin, onLogout, onAdminUpdate }) {
           : "Project added successfully."
       );
 
-      closeForm();
+      setShowForm(false);
+      setEditingId(null);
+      setForm(emptyForm);
       await loadProjects();
     } catch (err) {
       setError(err.message || "Unable to save project");
