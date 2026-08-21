@@ -248,7 +248,7 @@ function AdminDashboard({ admin, onLogout, onAdminUpdate }) {
   };
 
   const openEditForm = (project) => {
-    setEditingId(project._id);
+    setEditingId(project._id || project.id);
 
     setForm({
       title: project.title || "",
@@ -1132,6 +1132,7 @@ function AdminDashboard({ admin, onLogout, onAdminUpdate }) {
 
                     <div className="premium-project-actions">
                       <button
+                        type="button"
                         className="edit-project"
                         onClick={() =>
                           openEditForm(project)
@@ -1141,6 +1142,7 @@ function AdminDashboard({ admin, onLogout, onAdminUpdate }) {
                       </button>
 
                       <button
+                        type="button"
                         className="delete-project"
                         onClick={() =>
                           handleDelete(project._id)
