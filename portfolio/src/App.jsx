@@ -3,7 +3,11 @@ import { motion } from "framer-motion";
 import { portfolioData } from "./data/portfolioData";
 import AdminLogin from "./Admin/AdminLogin";
 import AdminDashboard from "./Admin/AdminDashboard";
-import { PROJECTS_API_URL, SETTINGS_API_URL } from "./config/api";
+import {
+  ADMIN_API_URL,
+  PROJECTS_API_URL,
+  SETTINGS_API_URL,
+} from "./config/api";
 import "./App.css";
 
 const API_URL = PROJECTS_API_URL;
@@ -33,15 +37,34 @@ function App() {
 
   useEffect(() => {
     const token = localStorage.getItem("adminToken");
-    const savedAdmin = localStorage.getItem("adminUser");
 
-    if (token && savedAdmin) {
+    if (!token) return;
+
+    const validateAdminSession = async () => {
       try {
-        setAdmin(JSON.parse(savedAdmin));
+        const response = await fetch(`${ADMIN_API_URL}/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await response.json();
+
+        if (!response.ok || !data.success || !data.admin) {
+          throw new Error("Invalid admin session");
+        }
+
+        setAdmin(data.admin);
+        localStorage.setItem("adminUser", JSON.stringify(data.admin));
       } catch {
         localStorage.removeItem("adminToken");
         localStorage.removeItem("adminUser");
       }
+    }
+
+    validateAdminSession();
+  }, []);
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("admin") === "true") {
+      setShowAdminLogin(true);
     }
   }, []);
 
@@ -123,31 +146,6 @@ function App() {
     setAdmin(null);
     setShowAdminDashboard(false);
     setShowAdminLogin(false);
-  };
-
-  /* ==========================================
-     OPEN ADMIN
-  ========================================== */
-
-  const handleAdminClick = () => {
-    const token = localStorage.getItem("adminToken");
-    const savedAdmin = localStorage.getItem("adminUser");
-
-    if (token && savedAdmin) {
-      try {
-        const adminData = JSON.parse(savedAdmin);
-
-        setAdmin(adminData);
-        setShowAdminDashboard(true);
-        setShowAdminLogin(false);
-      } catch {
-        localStorage.removeItem("adminToken");
-        localStorage.removeItem("adminUser");
-        setShowAdminLogin(true);
-      }
-    } else {
-      setShowAdminLogin(true);
-    }
   };
 
   /* ==========================================
@@ -250,14 +248,6 @@ function App() {
             Let's Talk
             <Arrow />
           </a>
-
-          <button
-            type="button"
-            className="admin-nav-button"
-            onClick={handleAdminClick}
-          >
-            Admin
-          </button>
 
         </div>
 
@@ -1286,14 +1276,6 @@ function App() {
             © 2026 {personal.name}.
             All rights reserved.
           </p>
-
-          <button
-            type="button"
-            className="footer-admin-button"
-            onClick={handleAdminClick}
-          >
-            Admin
-          </button>
 
         </div>
 
