@@ -56,6 +56,14 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/settings", settingsRoutes);
 
+app.get("/", (req, res) => {
+  res.json({
+    success: true,
+    message: "Portfolio backend is running",
+    health: "/api/health",
+  });
+});
+
 // ===============================
 // HEALTH CHECK
 // ===============================
