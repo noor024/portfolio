@@ -12,6 +12,8 @@ const API_URL = PROJECTS_API_URL;
 const STRONG_PASSWORD_REGEX =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
 
+const getProjectId = (project) => project?._id ?? project?.id;
+
 const emptyForm = {
   title: "",
   description: "",
@@ -248,7 +250,14 @@ function AdminDashboard({ admin, onLogout, onAdminUpdate }) {
   };
 
   const openEditForm = (project) => {
-    setEditingId(project._id || project.id);
+    const projectId = getProjectId(project);
+
+    if (projectId === undefined || projectId === null) {
+      setError("This project cannot be edited because it has no ID.");
+      return;
+    }
+
+    setEditingId(String(projectId));
 
     setForm({
       title: project.title || "",
@@ -1055,7 +1064,7 @@ function AdminDashboard({ admin, onLogout, onAdminUpdate }) {
               {filteredProjects.map((project, index) => (
                 <motion.article
                   className="premium-project-card"
-                  key={project._id}
+                  key={getProjectId(project)}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{
@@ -1147,7 +1156,7 @@ function AdminDashboard({ admin, onLogout, onAdminUpdate }) {
                         type="button"
                         className="delete-project"
                         onClick={() =>
-                          handleDelete(project._id)
+                          handleDelete(getProjectId(project))
                         }
                       >
                         Delete
