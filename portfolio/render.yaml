@@ -1,5 +1,16 @@
 services:
   - type: web
+    name: portfolio-frontend
+    runtime: static
+    plan: free
+    rootDir: portfolio
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://portfolio-backend-arms.onrender.com/api
+
+  - type: web
     name: portfolio-backend
     runtime: node
     plan: free

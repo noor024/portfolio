@@ -1223,18 +1223,14 @@ function App() {
                 <span>✉</span>
               </a>
 
-              <button
+              <a
+                href="/Noor_Resume.pdf"
+                download="Noor_Resume.pdf"
                 className="secondary-button"
-                type="button"
-                onClick={() => {
-                  alert(
-                    "Add your CV PDF inside the public folder and connect it here."
-                  );
-                }}
               >
                 Download CV
                 <span>↓</span>
-              </button>
+              </a>
 
             </div>
 

@@ -9,7 +9,7 @@ export const portfolioData = {
 
   social: {
     github: "https://github.com/noor024",
-    linkedin: "www.linkedin.com/in/noor-mohammad-00932a355",
+    linkedin: "https://www.linkedin.com/in/noor-mohammad-00932a355",
     instagram: "https://www.instagram.com/thenoorunfiltered?igsh=anNrbmRzZzg2cjlq&utm_source=qr",
   },
 
