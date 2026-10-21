@@ -20,11 +20,14 @@ const app = express();
 
 app.use(helmet());
 
-const allowedOrigins = (process.env.FRONTEND_URL ||
+const configuredOrigins = (process.env.FRONTEND_URL ||
   "http://localhost:5173,http://127.0.0.1:5173")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
+const allowedOrigins = [
+  ...new Set([...configuredOrigins, "https://noormohd.me"]),
+];
 
 app.use(
   cors({
