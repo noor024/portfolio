@@ -1273,16 +1273,18 @@ function App() {
                 <span>✉</span>
               </a>
 
-              {activeResume && (
-                <a
-                  href={`${RESUMES_API_URL}/active/file`}
-                  className="secondary-button"
-                  download
-                >
-                  Download CV
-                  <span>↓</span>
-                </a>
-              )}
+              <a
+                href={
+                  activeResume
+                    ? `${RESUMES_API_URL}/active/file`
+                    : "/resume.pdf"
+                }
+                className="secondary-button"
+                download
+              >
+                Download CV
+                <span>↓</span>
+              </a>
 
             </div>
 
