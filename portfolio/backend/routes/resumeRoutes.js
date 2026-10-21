@@ -1,6 +1,5 @@
 const express = require("express");
 const multer = require("multer");
-const { Op } = require("sequelize");
 const ResumeVersion = require("../models/ResumeVersion");
 const sequelize = require("../config/database");
 const protectAdmin = require("../middleware/authMiddleware");
@@ -38,50 +37,22 @@ const toMetadata = (resume) => ({
   id: resume.id,
   title: resume.title,
   fileName: resume.fileName,
-  startsAt: resume.startsAt,
-  endsAt: resume.endsAt,
-  createdAt: resume.createdAt,
+  updatedAt: resume.updatedAt,
 });
 
-const getActiveResume = () => {
-  const now = new Date();
-
-  return ResumeVersion.findOne({
-    where: {
-      startsAt: { [Op.lte]: now },
-      [Op.or]: [
-        { endsAt: { [Op.is]: null } },
-        { endsAt: { [Op.gt]: now } },
-      ],
-    },
-    order: [["startsAt", "DESC"]],
+const getCurrentResume = () =>
+  ResumeVersion.findOne({
+    order: [["updatedAt", "DESC"], ["id", "DESC"]],
   });
-};
 
 router.get("/active", async (_req, res) => {
   try {
-    const now = new Date();
-    const resume = await getActiveResume();
-    const nextScheduledResume = await ResumeVersion.findOne({
-      where: { startsAt: { [Op.gt]: now } },
-      attributes: ["startsAt"],
-      order: [["startsAt", "ASC"]],
-    });
-    const changeTimes = [
-      resume?.endsAt,
-      nextScheduledResume?.startsAt,
-    ]
-      .filter((value) => value && new Date(value) > now)
-      .map((value) => new Date(value));
-    const nextChangeAt = changeTimes.length
-      ? new Date(Math.min(...changeTimes.map((value) => value.getTime())))
-      : null;
+    const resume = await getCurrentResume();
 
     res.set("Cache-Control", "no-store");
     res.json({
       success: true,
       resume: resume ? toMetadata(resume) : null,
-      nextChangeAt,
     });
   } catch (error) {
     console.error("Get active resume error:", error.message);
@@ -94,7 +65,7 @@ router.get("/active", async (_req, res) => {
 
 router.get("/active/file", async (_req, res) => {
   try {
-    const resume = await getActiveResume();
+    const resume = await getCurrentResume();
     if (!resume) {
       return res.status(404).json({
         success: false,
@@ -127,36 +98,23 @@ router.get("/active/file", async (_req, res) => {
 
 router.get("/", protectAdmin, async (_req, res) => {
   try {
-    const resumes = await ResumeVersion.findAll({
-      attributes: ["id", "title", "fileName", "startsAt", "endsAt", "createdAt"],
-      order: [["startsAt", "DESC"]],
-    });
+    const resume = await getCurrentResume();
 
     res.json({
       success: true,
-      resumes: resumes.map(toMetadata),
+      resume: resume ? toMetadata(resume) : null,
     });
   } catch (error) {
-    console.error("List resumes error:", error.message);
+    console.error("Get current resume error:", error.message);
     res.status(500).json({
       success: false,
-      message: "Unable to load resume history.",
+      message: "Unable to load the current resume.",
     });
   }
 });
 
 router.post("/", protectAdmin, uploadResume, async (req, res) => {
-  const title = String(req.body.title || "").trim();
   const file = req.file;
-  const startsAt = new Date(req.body.startsAt);
-  const endsAt = req.body.endsAt ? new Date(req.body.endsAt) : null;
-
-  if (!title || title.length > 100) {
-    return res.status(400).json({
-      success: false,
-      message: "A resume title of up to 100 characters is required.",
-    });
-  }
 
   if (!file || file.mimetype !== "application/pdf" ||
       file.buffer.subarray(0, 5).toString("ascii") !== "%PDF-") {
@@ -166,128 +124,67 @@ router.post("/", protectAdmin, uploadResume, async (req, res) => {
     });
   }
 
-  if (Number.isNaN(startsAt.getTime()) ||
-      (endsAt && Number.isNaN(endsAt.getTime())) ||
-      (endsAt && endsAt <= startsAt)) {
-    return res.status(400).json({
-      success: false,
-      message: "The end time must be later than the start time.",
-    });
-  }
-
   try {
     const resume = await sequelize.transaction(async (transaction) => {
-      const previousOpenVersion = await ResumeVersion.findOne({
-        where: {
-          startsAt: { [Op.lt]: startsAt },
-          endsAt: { [Op.is]: null },
-        },
-        order: [["startsAt", "DESC"]],
+      const existingResumes = await ResumeVersion.findAll({
+        attributes: ["id"],
+        order: [["updatedAt", "DESC"], ["id", "DESC"]],
         transaction,
         lock: transaction.LOCK.UPDATE,
       });
-
-      if (previousOpenVersion) {
-        await previousOpenVersion.update({ endsAt: startsAt }, { transaction });
-      }
-
-      const upperBound = endsAt || new Date("9999-12-31T23:59:59.999Z");
-      const overlappingResume = await ResumeVersion.findOne({
-        where: {
-          startsAt: { [Op.lt]: upperBound },
-          [Op.or]: [
-            { endsAt: { [Op.is]: null } },
-            { endsAt: { [Op.gt]: startsAt } },
-          ],
-        },
-        transaction,
-      });
-
-      if (overlappingResume) {
-        const error = new Error("This schedule overlaps another resume.");
-        error.statusCode = 409;
-        throw error;
-      }
-
       const fileName = file.originalname
         .replace(/[/\\]/g, "_")
         .replace(/[\r\n"]/g, "_")
         .slice(0, 255);
+      const currentResume = existingResumes.length
+        ? await ResumeVersion.findByPk(existingResumes[0].id, { transaction })
+        : null;
 
-      return ResumeVersion.create(
-        {
-          title,
-          fileName,
-          fileData: file.buffer,
-          startsAt,
-          endsAt,
-        },
-        { transaction }
-      );
+      const savedResume = currentResume
+        ? await currentResume.update(
+            {
+              title: "Current resume",
+              fileName,
+              fileData: file.buffer,
+              startsAt: new Date(),
+              endsAt: null,
+            },
+            { transaction }
+          )
+        : await ResumeVersion.create(
+            {
+              title: "Current resume",
+              fileName,
+              fileData: file.buffer,
+              startsAt: new Date(),
+              endsAt: null,
+            },
+            { transaction }
+          );
+
+      const replacedResumeIds = existingResumes
+        .slice(1)
+        .map(({ id }) => id);
+      if (replacedResumeIds.length) {
+        await ResumeVersion.destroy({
+          where: { id: replacedResumeIds },
+          transaction,
+        });
+      }
+
+      return savedResume;
     });
 
     return res.status(201).json({
       success: true,
-      message: "Resume scheduled successfully.",
+      message: "CV replaced and published successfully.",
       resume: toMetadata(resume),
     });
   } catch (error) {
-    if (error.statusCode === 409) {
-      return res.status(409).json({
-        success: false,
-        message: error.message,
-      });
-    }
-
     console.error("Upload resume error:", error.message);
     return res.status(500).json({
       success: false,
-      message: "Unable to save the resume.",
-    });
-  }
-});
-
-router.delete("/:id", protectAdmin, async (req, res) => {
-  try {
-    const deleted = await sequelize.transaction(async (transaction) => {
-      const resume = await ResumeVersion.findByPk(req.params.id, {
-        transaction,
-        lock: transaction.LOCK.UPDATE,
-      });
-      if (!resume) return false;
-
-      const previousResume = await ResumeVersion.findOne({
-        where: { endsAt: resume.startsAt },
-        transaction,
-        lock: transaction.LOCK.UPDATE,
-      });
-      if (previousResume) {
-        await previousResume.update(
-          { endsAt: resume.endsAt },
-          { transaction }
-        );
-      }
-
-      await resume.destroy({ transaction });
-      return true;
-    });
-
-    if (!deleted) {
-      return res.status(404).json({
-        success: false,
-        message: "Resume not found.",
-      });
-    }
-
-    return res.json({
-      success: true,
-      message: "Resume removed.",
-    });
-  } catch (error) {
-    console.error("Delete resume error:", error.message);
-    return res.status(400).json({
-      success: false,
-      message: "Unable to remove the resume.",
+      message: "Unable to replace the current resume.",
     });
   }
 });

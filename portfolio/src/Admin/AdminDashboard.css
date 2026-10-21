@@ -930,20 +930,10 @@
   border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.resume-history h3 {
-  margin: 0 0 14px;
-  font-size: 15px;
-}
-
 .resume-empty {
   margin: 0;
   color: #777781;
   font-size: 11px;
-}
-
-.resume-list {
-  display: grid;
-  gap: 10px;
 }
 
 .resume-list-item {
@@ -963,45 +953,11 @@
   min-width: 0;
 }
 
-.resume-list-title {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 9px;
-}
-
-.resume-list-title strong {
-  font-size: 12px;
-}
-
 .resume-list-details > span,
 .resume-list-details small {
   overflow-wrap: anywhere;
   color: #777781;
   font-size: 10px;
-}
-
-.resume-status {
-  padding: 4px 7px;
-  border-radius: 20px;
-  font-size: 8px;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.resume-status.live {
-  color: #86efac;
-  background: rgba(34, 197, 94, 0.1);
-}
-
-.resume-status.scheduled {
-  color: #93c5fd;
-  background: rgba(59, 130, 246, 0.12);
-}
-
-.resume-status.expired {
-  color: #a1a1aa;
-  background: rgba(161, 161, 170, 0.1);
 }
 
 /* =========================================================
@@ -1785,10 +1741,6 @@
 
   .account-footer .premium-primary-button {
     width: 100%;
-  }
-
-  .resume-list-item {
-    align-items: flex-start;
   }
 
   .modal-grid {

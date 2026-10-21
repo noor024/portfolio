@@ -1,6 +1,6 @@
 # Noor Mohammad — Developer Portfolio
 
-Personal portfolio for **Noor Mohammad**, a full-stack developer. The site presents a profile, skills, projects, and contact information, with a private admin dashboard for managing published content and scheduled resume versions.
+Personal portfolio for **Noor Mohammad**, a full-stack developer. The site presents a profile, skills, projects, and contact information, with a private admin dashboard for managing published content and the current CV.
 
 **Live site:** [noormohd.me](https://noormohd.me/)
 
@@ -8,7 +8,7 @@ Personal portfolio for **Noor Mohammad**, a full-stack developer. The site prese
 
 - Responsive portfolio with profile, journey, skills, projects, and contact sections
 - Admin-managed profile settings and projects
-- PDF resume uploads with scheduled start and optional end times
+- Admin upload to immediately replace the CV available from the public download button
 - PostgreSQL persistence for portfolio content and resume files
 - Protected admin endpoints, API rate limiting, and security headers
 - SEO metadata, social sharing cards, favicon, sitemap, and robots directives
@@ -84,7 +84,7 @@ Open the site with `?admin=true` to reach the admin sign-in screen:
 http://localhost:5173/?admin=true
 ```
 
-After signing in, use the dashboard to update profile settings and manage projects. The **Resume Schedule** section accepts PDF files up to 10 MB. Choose when a version should become available and, optionally, when it should stop being available. Times are entered in the browser's local timezone. A new open-ended version ends the previous open-ended version at its start time; overlapping schedules are rejected. The public **Download CV** link is shown only while a resume is active.
+After signing in, use the dashboard to update profile settings and manage projects. The **Current CV** section accepts PDF files up to 10 MB. Uploading a file replaces the previous database CV immediately, and the public **Download CV** button serves the latest upload. Until the first admin upload, the public button uses the bundled `public/resume.pdf`.
 
 ## API overview
 
@@ -97,10 +97,11 @@ The backend serves JSON and resume downloads under `/api`:
 | `/api/settings` | Read and update profile and social settings |
 | `/api/resumes/active` | Get the currently published resume |
 | `GET /api/resumes/active/file` | Download the currently published resume |
-| `/api/resumes` | List, schedule, and remove resume versions (admin access required) |
+| `GET /api/resumes` | Get the current CV details (admin access required) |
+| `POST /api/resumes` | Replace the current CV with an uploaded PDF (admin access required) |
 | `/api/admin` | Admin sign-in, session, and account management |
 
-Write operations and resume history are protected by admin authentication.
+Write operations and current-CV details are protected by admin authentication.
 
 ## Production
 

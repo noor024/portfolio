@@ -16,11 +16,6 @@ const STRONG_PASSWORD_REGEX =
 const getProjectId = (project) => project?._id ?? project?.id;
 const MAX_RESUME_SIZE = 10 * 1024 * 1024;
 
-const toLocalDateTimeValue = (date) => {
-  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-  return localDate.toISOString().slice(0, 16);
-};
-
 const emptyForm = {
   title: "",
   description: "",
@@ -78,17 +73,12 @@ function AdminDashboard({ admin, onLogout, onAdminUpdate }) {
   const [settingsMessage, setSettingsMessage] = useState("");
   const [settingsError, setSettingsError] = useState("");
 
-  const [resumes, setResumes] = useState([]);
-  const [resumesLoading, setResumesLoading] = useState(true);
+  const [currentResume, setCurrentResume] = useState(null);
+  const [resumeLoading, setResumeLoading] = useState(true);
   const [resumeSaving, setResumeSaving] = useState(false);
   const [resumeMessage, setResumeMessage] = useState("");
   const [resumeError, setResumeError] = useState("");
-  const [resumeForm, setResumeForm] = useState({
-    title: "",
-    startsAt: toLocalDateTimeValue(new Date()),
-    endsAt: "",
-    file: null,
-  });
+  const [resumeFile, setResumeFile] = useState(null);
   const resumeFileInputRef = useRef(null);
 
   const loadProjects = async () => {
@@ -117,7 +107,7 @@ function AdminDashboard({ admin, onLogout, onAdminUpdate }) {
 
   const loadResumes = async () => {
     try {
-      setResumesLoading(true);
+      setResumeLoading(true);
       const token = localStorage.getItem("adminToken");
       const response = await fetch(RESUMES_API_URL, {
         headers: { Authorization: `Bearer ${token}` },
@@ -125,15 +115,15 @@ function AdminDashboard({ admin, onLogout, onAdminUpdate }) {
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.message || "Unable to load resumes");
+        throw new Error(data.message || "Unable to load the current CV");
       }
 
-      setResumes(data.resumes || []);
+      setCurrentResume(data.resume || null);
       setResumeError("");
     } catch (err) {
-      setResumeError(err.message || "Unable to load resumes");
+      setResumeError(err.message || "Unable to load the current CV");
     } finally {
-      setResumesLoading(false);
+      setResumeLoading(false);
     }
   };
 
@@ -292,31 +282,18 @@ function AdminDashboard({ admin, onLogout, onAdminUpdate }) {
     setResumeMessage("");
     setResumeError("");
 
-    if (!resumeForm.file) {
+    if (!resumeFile) {
       setResumeError("Choose a PDF resume to upload.");
       return;
     }
 
-    if (resumeForm.file.type !== "application/pdf") {
+    if (resumeFile.type !== "application/pdf") {
       setResumeError("Only PDF resumes are supported.");
       return;
     }
 
-    if (resumeForm.file.size > MAX_RESUME_SIZE) {
+    if (resumeFile.size > MAX_RESUME_SIZE) {
       setResumeError("The resume must be 10 MB or smaller.");
-      return;
-    }
-
-    const startsAt = new Date(resumeForm.startsAt);
-    const endsAt = resumeForm.endsAt ? new Date(resumeForm.endsAt) : null;
-    if (
-      Number.isNaN(startsAt.getTime()) ||
-      (endsAt && (
-        Number.isNaN(endsAt.getTime()) ||
-        endsAt <= startsAt
-      ))
-    ) {
-      setResumeError("The end time must be later than the start time.");
       return;
     }
 
@@ -328,10 +305,7 @@ function AdminDashboard({ admin, onLogout, onAdminUpdate }) {
       }
 
       const body = new FormData();
-      body.append("title", resumeForm.title.trim());
-      body.append("startsAt", startsAt.toISOString());
-      if (endsAt) body.append("endsAt", endsAt.toISOString());
-      body.append("file", resumeForm.file);
+      body.append("file", resumeFile);
 
       const response = await fetch(RESUMES_API_URL, {
         method: "POST",
@@ -344,51 +318,16 @@ function AdminDashboard({ admin, onLogout, onAdminUpdate }) {
         throw new Error(data.message || "Unable to save resume");
       }
 
-      setResumeMessage(data.message || "Resume scheduled successfully.");
-      setResumeForm({
-        title: "",
-        startsAt: toLocalDateTimeValue(new Date()),
-        endsAt: "",
-        file: null,
-      });
+      setResumeMessage(data.message || "CV replaced and published successfully.");
+      setResumeFile(null);
       if (resumeFileInputRef.current) {
         resumeFileInputRef.current.value = "";
       }
       await loadResumes();
     } catch (err) {
-      setResumeError(err.message || "Unable to save resume");
+      setResumeError(err.message || "Unable to replace the current CV");
     } finally {
       setResumeSaving(false);
-    }
-  };
-
-  const handleResumeDelete = async (resume) => {
-    if (!window.confirm(`Remove "${resume.title}" from resume history?`)) {
-      return;
-    }
-
-    setResumeMessage("");
-    setResumeError("");
-    try {
-      const token = localStorage.getItem("adminToken");
-      if (!token) {
-        throw new Error("Admin session expired. Please login again.");
-      }
-
-      const response = await fetch(`${RESUMES_API_URL}/${resume.id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || "Unable to remove resume");
-      }
-
-      setResumeMessage(data.message || "Resume removed.");
-      await loadResumes();
-    } catch (err) {
-      setResumeError(err.message || "Unable to remove resume");
     }
   };
 
@@ -948,13 +887,13 @@ function AdminDashboard({ admin, onLogout, onAdminUpdate }) {
           </form>
         </section>
 
-        {/* RESUME SCHEDULE */}
+        {/* CURRENT RESUME */}
         <section className="premium-section" id="resume-section">
           <div className="premium-section-heading">
             <div>
               <span className="section-kicker">PUBLIC DOWNLOAD</span>
-              <h2>Resume Schedule</h2>
-              <p>Upload a PDF and choose when it appears on your portfolio.</p>
+              <h2>Current CV</h2>
+              <p>Upload a new PDF whenever you want. It replaces the CV visitors can download right away.</p>
             </div>
           </div>
 
@@ -969,137 +908,56 @@ function AdminDashboard({ admin, onLogout, onAdminUpdate }) {
             <form className="resume-upload-form" onSubmit={handleResumeSubmit}>
               <div className="account-form-grid">
                 <div className="premium-field">
-                  <label htmlFor="resume-title">Version name</label>
-                  <input
-                    id="resume-title"
-                    type="text"
-                    maxLength={100}
-                    value={resumeForm.title}
-                    onChange={(event) =>
-                      setResumeForm((previous) => ({
-                        ...previous,
-                        title: event.target.value,
-                      }))
-                    }
-                    placeholder="e.g. Software Developer — 2026"
-                    required
-                  />
-                </div>
-
-                <div className="premium-field">
-                  <label htmlFor="resume-file">Resume PDF (max 10 MB)</label>
+                  <label htmlFor="resume-file">New CV (PDF, max 10 MB)</label>
                   <input
                     ref={resumeFileInputRef}
                     id="resume-file"
                     type="file"
                     accept="application/pdf,.pdf"
-                    onChange={(event) =>
-                      setResumeForm((previous) => ({
-                        ...previous,
-                        file: event.target.files?.[0] || null,
-                      }))
-                    }
+                    onChange={(event) => setResumeFile(event.target.files?.[0] || null)}
                     required
                   />
-                </div>
-
-                <div className="premium-field">
-                  <label htmlFor="resume-starts-at">Publish from (your local time)</label>
-                  <input
-                    id="resume-starts-at"
-                    type="datetime-local"
-                    value={resumeForm.startsAt}
-                    onChange={(event) =>
-                      setResumeForm((previous) => ({
-                        ...previous,
-                        startsAt: event.target.value,
-                      }))
-                    }
-                    required
-                  />
-                </div>
-
-                <div className="premium-field">
-                  <label htmlFor="resume-ends-at">Stop showing at (optional)</label>
-                  <input
-                    id="resume-ends-at"
-                    type="datetime-local"
-                    value={resumeForm.endsAt}
-                    onChange={(event) =>
-                      setResumeForm((previous) => ({
-                        ...previous,
-                        endsAt: event.target.value,
-                      }))
-                    }
-                  />
-                  <small>Leave blank to keep this resume published until a newer one starts.</small>
                 </div>
               </div>
 
               <div className="account-footer">
                 <span className="password-hint">
-                  Times use this device's local timezone. Scheduled versions change automatically.
+                  {currentResume
+                    ? `Current file: ${currentResume.fileName}`
+                    : "No database CV uploaded yet; the public button uses the bundled PDF."}
                 </span>
                 <button
                   type="submit"
                   className="premium-primary-button"
                   disabled={resumeSaving}
                 >
-                  {resumeSaving ? "Uploading..." : "Upload & Schedule"}
+                  {resumeSaving ? "Replacing..." : "Replace current CV"}
                 </button>
               </div>
             </form>
 
             <div className="resume-history">
-              <h3>Uploaded resumes</h3>
-              {resumesLoading ? (
+              {resumeLoading ? (
                 <div className="premium-loading">
                   <div className="premium-spinner" />
-                  <p>Loading resume schedule...</p>
+                  <p>Loading current CV...</p>
                 </div>
-              ) : resumes.length === 0 ? (
-                <p className="resume-empty">No resumes uploaded yet.</p>
+              ) : currentResume ? (
+                <div className="resume-list-item">
+                  <div className="resume-list-details">
+                    <strong>Currently published</strong>
+                    <span>{currentResume.fileName}</span>
+                    {currentResume.updatedAt && (
+                      <small>
+                        Updated {new Date(currentResume.updatedAt).toLocaleString()}
+                      </small>
+                    )}
+                  </div>
+                </div>
               ) : (
-                <div className="resume-list">
-                  {resumes.map((resume) => {
-                    const startsAt = new Date(resume.startsAt);
-                    const endsAt = resume.endsAt
-                      ? new Date(resume.endsAt)
-                      : null;
-                    const now = Date.now();
-                    const status = startsAt.getTime() > now
-                      ? "Scheduled"
-                      : endsAt && endsAt.getTime() <= now
-                        ? "Expired"
-                        : "Live";
-
-                    return (
-                      <article className="resume-list-item" key={resume.id}>
-                        <div className="resume-list-details">
-                          <div className="resume-list-title">
-                            <strong>{resume.title}</strong>
-                            <span className={`resume-status ${status.toLowerCase()}`}>
-                              {status}
-                            </span>
-                          </div>
-                          <span>{resume.fileName}</span>
-                          <small>
-                            {startsAt.toLocaleString()}
-                            {" — "}
-                            {endsAt ? endsAt.toLocaleString() : "No end date"}
-                          </small>
-                        </div>
-                        <button
-                          type="button"
-                          className="delete-project"
-                          onClick={() => handleResumeDelete(resume)}
-                        >
-                          Remove
-                        </button>
-                      </article>
-                    );
-                  })}
-                </div>
+                <p className="resume-empty">
+                  The public download button will use the bundled resume PDF until you upload a CV here.
+                </p>
               )}
             </div>
           </div>

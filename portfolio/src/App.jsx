@@ -115,15 +115,7 @@ function App() {
 
         if (cancelled) return;
         setActiveResume(data.resume);
-
-        const nextChange = data.nextChangeAt
-          ? new Date(data.nextChangeAt).getTime()
-          : Number.POSITIVE_INFINITY;
-        const delay = Math.max(
-          1000,
-          Math.min(60_000, nextChange - Date.now() + 250)
-        );
-        refreshTimeout = window.setTimeout(loadActiveResume, delay);
+        refreshTimeout = window.setTimeout(loadActiveResume, 60_000);
       } catch (error) {
         if (cancelled) return;
         console.error("Resume loading error:", error);
