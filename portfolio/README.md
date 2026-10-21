@@ -1,36 +1,133 @@
-# React + Vite
+# Noor Mohammad — Developer Portfolio
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Personal portfolio for **Noor Mohammad**, a full-stack developer. The site presents a profile, skills, projects, and contact information, with a private admin dashboard for managing published content and scheduled resume versions.
 
-Currently, two official plugins are available:
+**Live site:** [noormohd.me](https://noormohd.me/)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Features
 
-## React Compiler
+- Responsive portfolio with profile, journey, skills, projects, and contact sections
+- Admin-managed profile settings and projects
+- PDF resume uploads with scheduled start and optional end times
+- PostgreSQL persistence for portfolio content and resume files
+- Protected admin endpoints, API rate limiting, and security headers
+- SEO metadata, social sharing cards, favicon, sitemap, and robots directives
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Tech stack
 
-## Expanding the Oxlint configuration
+| Area | Technologies |
+| --- | --- |
+| Frontend | React, Vite, Framer Motion, Lucide |
+| Backend | Node.js, Express |
+| Database | PostgreSQL, Sequelize |
+| Security | Helmet, CORS, express-rate-limit, JWT, bcrypt |
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## Project structure
 
-## Portfolio content and resume scheduling
+```text
+portfolio/
+├── backend/       # Express API, Sequelize models, and PostgreSQL integration
+├── public/        # Static assets, profile images, SEO files, and icons
+├── src/           # React application and admin dashboard
+├── index.html     # Page metadata and social sharing tags
+└── package.json   # Frontend scripts and dependencies
+```
 
-Projects and profile settings are loaded from the PostgreSQL-backed API. If the API is
-unavailable, the portfolio does not substitute demo projects.
+## Requirements
 
-Start the API from `backend` after configuring `DATABASE_URL`, `JWT_SECRET`, and
-`FRONTEND_URL` in its environment:
+- Node.js (an active LTS release recommended)
+- npm
+- A PostgreSQL database
+
+## Run locally
+
+Open a terminal in the `portfolio` directory.
+
+### 1. Configure and start the backend
+
+In PowerShell:
+
+```powershell
+cd backend
+Copy-Item .env.example .env
+```
+
+Edit `backend/.env` and provide your database connection string and a long, random JWT secret. Set `FRONTEND_URL` to `http://localhost:5173` for local development. To create the first administrator, also add `ADMIN_NAME`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` to the environment file.
+
+Install dependencies, create the admin account, then start the API:
 
 ```powershell
 npm install
-npm start
+node createAdmin.js
+npm run dev
 ```
 
-The backend synchronizes the `resume_versions` table at startup. Sign in to the admin
-dashboard and use **Resume Schedule** to upload a PDF (up to 10 MB), set its publish time,
-and optionally set an end time. Times are entered in the browser's local timezone and
-stored in PostgreSQL. A new version automatically ends an earlier open-ended version when
-its publish time arrives; overlapping schedules are rejected. The public download is
-available only while a resume version is scheduled as active.
+The API runs on port `5000` by default. On startup it connects to PostgreSQL and synchronizes its Sequelize models. Check the database connection at [http://localhost:5000/api/health](http://localhost:5000/api/health).
+
+### 2. Start the frontend
+
+In a second terminal, return to the `portfolio` directory:
+
+```powershell
+Copy-Item .env.example .env.local
+npm install
+npm run dev
+```
+
+The frontend uses `http://localhost:5000/api` by default. Set `VITE_API_URL` in `.env.local` if your API uses a different URL. Open the local address printed by Vite, usually [http://localhost:5173](http://localhost:5173).
+
+## Admin dashboard
+
+Open the site with `?admin=true` to reach the admin sign-in screen:
+
+```text
+http://localhost:5173/?admin=true
+```
+
+After signing in, use the dashboard to update profile settings and manage projects. The **Resume Schedule** section accepts PDF files up to 10 MB. Choose when a version should become available and, optionally, when it should stop being available. Times are entered in the browser's local timezone. A new open-ended version ends the previous open-ended version at its start time; overlapping schedules are rejected. The public **Download CV** link is shown only while a resume is active.
+
+## API overview
+
+The backend serves JSON and resume downloads under `/api`:
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /api/health` | Check API and database availability |
+| `/api/projects` | Read and manage portfolio projects |
+| `/api/settings` | Read and update profile and social settings |
+| `/api/resumes/active` | Get the currently published resume |
+| `GET /api/resumes/active/file` | Download the currently published resume |
+| `/api/resumes` | List, schedule, and remove resume versions (admin access required) |
+| `/api/admin` | Admin sign-in, session, and account management |
+
+Write operations and resume history are protected by admin authentication.
+
+## Production
+
+- Deploy the frontend and backend separately if required by your hosting provider.
+- Set `VITE_API_URL` to the deployed API base URL, including `/api`, before building the frontend.
+- Configure the backend's `DATABASE_URL`, `JWT_SECRET`, `FRONTEND_URL`, `NODE_ENV=production`, and `PORT` in the hosting environment. `FRONTEND_URL` can contain comma-separated allowed origins.
+- Use a managed PostgreSQL instance and keep credentials in the hosting provider's secret settings—not in source control.
+- Build the frontend with `npm run build`; the generated static site is in `dist/`.
+- Start the backend with `npm start`.
+
+## Available scripts
+
+### Frontend
+
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the Vite development server |
+| `npm run build` | Build the production frontend |
+| `npm run preview` | Preview the production build locally |
+| `npm run lint` | Run Oxlint |
+
+### Backend
+
+Run these commands from `backend/`.
+
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the API with Node.js watch mode |
+| `npm start` | Start the API |
+| `npm run migrate:data` | Run the existing data migration script |
