@@ -6,11 +6,10 @@ import AdminDashboard from "./Admin/AdminDashboard";
 import {
   ADMIN_API_URL,
   PROJECTS_API_URL,
+  RESUMES_API_URL,
   SETTINGS_API_URL,
 } from "./config/api";
 import "./App.css";
-
-const API_URL = PROJECTS_API_URL;
 
 function Arrow() {
   return <span className="arrow-icon">↗</span>;
@@ -25,7 +24,10 @@ function App() {
 
   const [projects, setProjects] = useState([]);
   const [projectsLoading, setProjectsLoading] = useState(true);
+  const [projectsUnavailable, setProjectsUnavailable] = useState(false);
   const [siteSettings, setSiteSettings] = useState(portfolioData);
+  const [siteSettingsUnavailable, setSiteSettingsUnavailable] = useState(false);
+  const [activeResume, setActiveResume] = useState(null);
 
   const closeMenu = () => setMenuOpen(false);
 
@@ -76,7 +78,7 @@ function App() {
     try {
       setProjectsLoading(true);
 
-      const response = await fetch(API_URL);
+      const response = await fetch(PROJECTS_API_URL);
       const data = await response.json();
 
       if (!response.ok || !data.success) {
@@ -84,9 +86,11 @@ function App() {
       }
 
       setProjects(data.projects || []);
+      setProjectsUnavailable(false);
     } catch (error) {
       console.error("Projects loading error:", error);
-      setProjects(portfolioData.projects || []);
+      setProjects([]);
+      setProjectsUnavailable(true);
     } finally {
       setProjectsLoading(false);
     }
@@ -94,6 +98,45 @@ function App() {
 
   useEffect(() => {
     loadProjects();
+  }, []);
+
+  useEffect(() => {
+    let refreshTimeout;
+    let cancelled = false;
+
+    const loadActiveResume = async () => {
+      try {
+        const response = await fetch(`${RESUMES_API_URL}/active`);
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.message || "Unable to load resume");
+        }
+
+        if (cancelled) return;
+        setActiveResume(data.resume);
+
+        const nextChange = data.nextChangeAt
+          ? new Date(data.nextChangeAt).getTime()
+          : Number.POSITIVE_INFINITY;
+        const delay = Math.max(
+          1000,
+          Math.min(60_000, nextChange - Date.now() + 250)
+        );
+        refreshTimeout = window.setTimeout(loadActiveResume, delay);
+      } catch (error) {
+        if (cancelled) return;
+        console.error("Resume loading error:", error);
+        setActiveResume(null);
+        refreshTimeout = window.setTimeout(loadActiveResume, 60_000);
+      }
+    };
+
+    loadActiveResume();
+    return () => {
+      cancelled = true;
+      window.clearTimeout(refreshTimeout);
+    };
   }, []);
 
   useEffect(() => {
@@ -112,8 +155,10 @@ function App() {
           personal: { ...previous.personal, ...data.settings.personal },
           social: { ...previous.social, ...data.settings.social },
         }));
+        setSiteSettingsUnavailable(false);
       } catch (error) {
         console.error("Settings loading error:", error);
+        setSiteSettingsUnavailable(true);
       }
     };
 
@@ -262,6 +307,11 @@ function App() {
       </header>
 
       <main>
+        {siteSettingsUnavailable && (
+          <p className="portfolio-load-error" role="alert">
+            Portfolio profile data could not be refreshed. Please try again later.
+          </p>
+        )}
 
         {/* ======================================
             HERO
@@ -921,13 +971,13 @@ function App() {
                   </div>
 
                   <h3>
-                    Projects coming soon
+                    {projectsUnavailable ? "Projects unavailable" : "Projects coming soon"}
                   </h3>
 
                   <p>
-                    New projects will appear here
-                    once they are added from the
-                    admin dashboard.
+                    {projectsUnavailable
+                      ? "Portfolio projects could not be loaded. Please try again later."
+                      : "New projects will appear here once they are added from the admin dashboard."}
                   </p>
 
                 </div>
@@ -1223,14 +1273,16 @@ function App() {
                 <span>✉</span>
               </a>
 
-              <a
-                href="/Noor_Resume.pdf"
-                download="Noor_Resume.pdf"
-                className="secondary-button"
-              >
-                Download CV
-                <span>↓</span>
-              </a>
+              {activeResume && (
+                <a
+                  href={`${RESUMES_API_URL}/active/file`}
+                  className="secondary-button"
+                  download
+                >
+                  Download CV
+                  <span>↓</span>
+                </a>
+              )}
 
             </div>
 

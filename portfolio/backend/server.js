@@ -10,6 +10,7 @@ const sequelize = require("./config/database");
 const adminRoutes = require("./routes/adminRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
+const resumeRoutes = require("./routes/resumeRoutes");
 
 const app = express();
 
@@ -55,6 +56,7 @@ app.use("/api", apiLimiter);
 app.use("/api/admin", adminRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/settings", settingsRoutes);
+app.use("/api/resumes", resumeRoutes);
 
 app.get("/", (req, res) => {
   res.json({

@@ -23,30 +23,4 @@ export const portfolioData = {
     "Java",
     "Flutter",
   ],
-
-  projects: [
-    {
-      title: "Amazon Clone",
-      description:
-        "A modern full-stack e-commerce platform with authentication, products, cart and order functionality.",
-      tech: ["React", "Node.js", "MongoDB"],
-      type: "Full Stack",
-    },
-
-    {
-      title: "Student Portfolio",
-      description:
-        "A modern responsive portfolio designed for showcasing skills, projects and professional achievements.",
-      tech: ["React", "CSS", "JavaScript"],
-      type: "Frontend",
-    },
-
-    {
-      title: "Data Dashboard",
-      description:
-        "An interactive dashboard concept for presenting analytics and important business information.",
-      tech: ["React", "Charts", "API"],
-      type: "Dashboard",
-    },
-  ],
 };
